@@ -1,0 +1,72 @@
+// swift-format 配置文件
+// 用于代码格式化
+
+// 缩进
+indentation:
+  spaces: 4
+
+// 最大行长度
+lineLength:
+  160
+
+// .tab
+tab:
+  termination: newline
+
+// 规则
+rules:
+  # 开启所有规则
+  all: true
+  
+  # 禁用特定规则
+  disabledRules:
+    - nonboundsedrange
+    - redundantBackticks
+
+// 文件头部
+fileHeader:
+  template: |
+    //
+    //  {{ filename }}
+    //  Created by ClawNotes Team.
+    //  Copyright © 2026. All rights reserved.
+    //
+
+// imports
+imports:
+  groupedImports: true
+  preserveExplicitImports: true
+
+// 命名
+naming:
+  declarations:
+    typeAliases:
+      maxLength: 30
+    functions:
+      maxLength: 40
+    variables:
+      maxLength: 30
+
+// 空白
+whitespace:
+ 水平制表符: useTabs
+ 垂直空白:
+    always:
+      - functionCall
+      - functionDeclaration
+      -闭包
+      - 类
+      - 枚举
+
+// 注释
+comments:
+  validateStripped: true
+  minimumLength: 3
+
+// 标记
+markers:
+  todos:
+    - FIXME
+    - TODO
+    - 优化
+    - BUG
