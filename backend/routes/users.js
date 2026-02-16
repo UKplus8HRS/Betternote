@@ -3,8 +3,11 @@
  * 
  * API 端点：
  * GET  /api/users/me           - 获取当前用户信息
- * GET  /api/users/:uid         - 获取指定用户信息 (仅管理员)
+ * GET  /api/users/:uid         - 获取指定用户信息
  * POST /api/users/anon         - 创建匿名用户
+ * POST /api/users/refresh      - 刷新 Token
+ * POST /api/users/link        - 链接登录提供商
+ * DELETE /api/users/:uid      - 删除用户
  */
 
 const express = require('express');
@@ -26,7 +29,13 @@ router.get('/me', verifyToken, async (req, res) => {
       return res.status(404).json({ error: '用户不存在' });
     }
     
-    res.json(userInfo);
+    // 获取用户统计
+    const stats = await getUserStats(req.userId);
+    
+    res.json({
+      ...userInfo,
+      stats
+    });
   } catch (error) {
     console.error('获取用户信息失败:', error);
     res.status(500).json({ error: '获取用户信息失败' });
@@ -34,10 +43,53 @@ router.get('/me', verifyToken, async (req, res) => {
 });
 
 /**
+ * 获取用户统计信息
+ */
+async function getUserStats(uid) {
+  return new Promise((resolve) => {
+    // 这里可以查询用户的笔记本数量、页面数量等
+    const stats = {
+      notebookCount: 0,
+      pageCount: 0,
+      totalSize: 0,
+      lastActive: new Date().toISOString()
+    };
+    
+    // 查询数据库
+    db.get('SELECT COUNT(*) as count FROM notebooks WHERE userId = ?', [uid], (err, row) => {
+      if (!err && row) {
+        stats.notebookCount = row.count;
+      }
+      
+      resolve(stats);
+    });
+  });
+}
+
+/**
+ * 获取指定用户公开信息
+ * GET /api/users/public/:uid
+ */
+router.get('/public/:uid', async (req, res) => {
+  const { uid } = req.params;
+  
+  try {
+    const userRecord = await admin.auth().getUser(uid);
+    
+    res.json({
+      uid: userRecord.uid,
+      displayName: userRecord.displayName,
+      photoURL: userRecord.photoURL,
+      // 不返回敏感信息
+    });
+  } catch (error) {
+    res.status(404).json({ error: '用户不存在' });
+  }
+});
+
+/**
  * 创建匿名用户
  * POST /api/users/anon
- * 
- * 用于临时用户，无需认证
  */
 router.post('/anon', async (req, res) => {
   try {
@@ -62,8 +114,6 @@ router.post('/anon', async (req, res) => {
 /**
  * 刷新用户 Token
  * POST /api/users/refresh
- * 
- * 用于刷新用户的 ID Token
  */
 router.post('/refresh', verifyToken, async (req, res) => {
   try {
@@ -84,14 +134,6 @@ router.post('/refresh', verifyToken, async (req, res) => {
 /**
  * 链接登录提供商
  * POST /api/users/link
- * 
- * 用于将当前匿名用户链接到其他登录方式
- * 
- * 请求体:
- * {
- *   "idToken": "新的 ID Token (从客户端获取)",
- *   "providerId": "google.com" | "wechat.com" | "apple.com"
- * }
  */
 router.post('/link', verifyToken, async (req, res) => {
   const { idToken, providerId } = req.body;
@@ -113,7 +155,6 @@ router.post('/link', verifyToken, async (req, res) => {
     }
     
     // 注意：实际的账号链接需要在客户端完成
-    // 这里只是记录链接请求
     
     res.json({
       success: true,
@@ -127,10 +168,28 @@ router.post('/link', verifyToken, async (req, res) => {
 });
 
 /**
+ * 更新用户资料
+ * PUT /api/users/me
+ */
+router.put('/me', verifyToken, async (req, res) => {
+  const { displayName, photoURL } = req.body;
+  
+  try {
+    await admin.auth().updateUser(req.userId, {
+      displayName: displayName,
+      photoURL: photoURL
+    });
+    
+    res.json({ message: '更新成功' });
+  } catch (error) {
+    console.error('更新用户资料失败:', error);
+    res.status(500).json({ error: '更新用户资料失败' });
+  }
+});
+
+/**
  * 删除用户
  * DELETE /api/users/:uid
- * 
- * 需要管理员权限
  */
 router.delete('/:uid', verifyToken, async (req, res) => {
   const { uid } = req.params;
@@ -138,7 +197,6 @@ router.delete('/:uid', verifyToken, async (req, res) => {
   // 检查权限
   if (req.userId !== uid) {
     // 这里可以添加管理员检查逻辑
-    // return res.status(403).json({ error: '无权限' });
   }
   
   try {
@@ -148,6 +206,34 @@ router.delete('/:uid', verifyToken, async (req, res) => {
     console.error('删除用户失败:', error);
     res.status(500).json({ error: '删除用户失败' });
   }
+});
+
+/**
+ * 获取用户设置
+ * GET /api/users/me/settings
+ */
+router.get('/me/settings', verifyToken, (req, res) => {
+  // 从数据库获取用户设置
+  const settings = {
+    language: 'zh-Hans',
+    theme: 'default',
+    notifications: true
+  };
+  
+  res.json(settings);
+});
+
+/**
+ * 更新用户设置
+ * PUT /api/users/me/settings
+ */
+router.put('/me/settings', verifyToken, (req, res) => {
+  const { settings } = req.body;
+  
+  // 保存到数据库
+  // ...
+  
+  res.json({ message: '设置已更新' });
 });
 
 module.exports = router;

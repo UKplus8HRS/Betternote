@@ -5,6 +5,7 @@
  * - 笔记本 CRUD 操作
  * - 笔记页面管理
  * - 用户认证 (Firebase)
+ * - 数据统计
  * - 数据持久化 (SQLite)
  * 
  * 端口：3000
@@ -25,6 +26,7 @@ if (!fs.existsSync(dataDir)) {
 const notebooksRouter = require('./routes/notebooks');
 const pagesRouter = require('./routes/pages');
 const usersRouter = require('./routes/users');
+const statsRouter = require('./routes/stats');
 const { initDatabase } = require('./models/database');
 
 const app = express();
@@ -32,20 +34,25 @@ const PORT = process.env.PORT || 3000;
 
 // 中间件
 app.use(cors());
-app.use(express.json({ limit: '50mb' })); // 支持大文件 (绘图数据)
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// 静态文件 (如果有前端页面)
+// 静态文件
 app.use(express.static(path.join(__dirname, 'public')));
 
 // API 路由
 app.use('/api/notebooks', notebooksRouter);
 app.use('/api/pages', pagesRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/stats', statsRouter);
 
 // 健康检查
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
+  });
 });
 
 // 根路径
@@ -57,6 +64,7 @@ app.get('/', (req, res) => {
       notebooks: '/api/notebooks',
       pages: '/api/pages',
       users: '/api/users',
+      stats: '/api/stats',
       health: '/health'
     },
     auth: {
