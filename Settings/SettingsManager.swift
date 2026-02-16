@@ -9,6 +9,7 @@ final class SettingsManager: ObservableObject {
         // 通用
         var autoSave: Bool = true
         var autoSaveInterval: Int = 30  // 秒
+        var language: String = "en"     // 语言
         
         // 笔记
         var defaultTemplate: String = "blank"
@@ -17,7 +18,7 @@ final class SettingsManager: ObservableObject {
         
         // 工具栏
         var showToolBar: Bool = true
-        var toolBarPosition: String = "bottom"  // "bottom", "top", "floating"
+        var toolBarPosition: String = "bottom"
         var quickColorCount: Int = 10
         
         // 手势
@@ -30,11 +31,11 @@ final class SettingsManager: ObservableObject {
         var syncWiFiOnly: Bool = true
         
         // 存储
-        var maxCacheSize: Int = 500  // MB
+        var maxCacheSize: Int = 500
         var autoCleanupCache: Bool = true
         
         // 界面
-        var defaultViewMode: String = "single"  // "single", "double", "scroll"
+        var defaultViewMode: String = "single"
         var showThumbnailSidebar: Bool = true
         
         // 隐私
@@ -62,7 +63,7 @@ final class SettingsManager: ObservableObject {
     }
     
     func saveSettings() {
-        if let dataEncoder().encode(settings = try? JSON) {
+        if let data = try? JSONEncoder().encode(settings) {
             UserDefaults.standard.set(data, forKey: "appSettings")
         }
     }
@@ -75,12 +76,11 @@ final class SettingsManager: ObservableObject {
 
 // MARK: - 设置视图
 
-import SwiftUI
-
 struct SettingsView: View {
     @ObservedObject var settingsManager: SettingsManager
     @ObservedObject var themeManager: ThemeManager
     @ObservedObject var securityManager: SecurityManager
+    @ObservedObject var localizationManager: LocalizationManager
     
     var body: some View {
         Form {
@@ -94,6 +94,27 @@ struct SettingsView: View {
                         Text("30 秒").tag(30)
                         Text("1 分钟").tag(60)
                         Text("5 分钟").tag(300)
+                    }
+                }
+            }
+            
+            // 语言设置
+            Section("语言 / Language") {
+                ForEach(LocalizationManager.Language.allCases) { language in
+                    Button(action: {
+                        localizationManager.setLanguage(language)
+                    }) {
+                        HStack {
+                            Text(language.flag)
+                                .font(.title2)
+                            Text(language.displayName)
+                                .foregroundColor(.primary)
+                            Spacer()
+                            if localizationManager.currentLanguage == language {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.blue)
+                            }
+                        }
                     }
                 }
             }
@@ -183,9 +204,6 @@ struct SettingsView: View {
                 }
                 .foregroundColor(.red)
             }
-        }
-        .onChange(of: settingsManager.settings) { _ in
-            settingsManager.saveSettings()
         }
     }
 }
