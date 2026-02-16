@@ -1,0 +1,16 @@
+{
+  "name": "betternotes-backend",
+  "version": "1.0.0",
+  "description": "ClawNotes 后端 API 服务",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.7",
+    "cors": "^2.8.5",
+    "uuid": "^9.0.0"
+  }
+}
