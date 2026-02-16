@@ -1,8 +1,9 @@
 import SwiftUI
 import PencilKit
 
-/// 笔记手写画布视图
+/// 笔记手写画布视图 (增强版)
 /// 核心组件，使用 PencilKit 实现手写功能
+/// 支持手势操作：缩放、旋转、翻页
 struct NoteCanvasView: View {
     @EnvironmentObject var viewModel: NotebookViewModel
     let page: NotePage
@@ -10,48 +11,60 @@ struct NoteCanvasView: View {
     
     @State private var canvasView = PKCanvasView()
     @State private var drawing = PKDrawing()
-    @State private var selectedTool: ToolType = .pen
-    @State private var selectedColor: Color = .black
-    @State private var strokeWidth: CGFloat = 3
+    @State private var gestureManager = GestureManager()
+    @State private var showingToolBar = true
+    @State private var lastScale: CGFloat = 1.0
+    @State private var lastRotation: Angle = .zero
     
-    /// 工具类型
-    enum ToolType: String, CaseIterable {
-        case pen = "钢笔"
-        case highlighter = "荧光笔"
-        case eraser = "橡皮擦"
-        
-        var icon: String {
-            switch self {
-            case .pen: return "pencil"
-            case .highlighter: return "highlighter"
-            case .eraser: return "eraser"
-            }
+    // MARK: - 页面模板背景
+    
+    var templateBackground: some View {
+        ZStack {
+            // 背景色
+            Color(hex: page.backgroundColor) ?? .white
+            
+            // 模板网格
+            TemplatePreviewView(template: page.templateType)
+                .scaleEffect(gestureManager.scale)
         }
     }
     
-    /// 预定义颜色
-    let colors: [Color] = [
-        .black, .gray, .red, .orange, .yellow, .green, .blue, .purple, .pink, .brown
-    ]
+    // MARK: - 主视图
     
     var body: some View {
-        VStack(spacing: 0) {
-            // 工具栏
-            toolBar
-            
-            Divider()
-            
-            // 手写画布
-            CanvasRepresentable(
-                canvasView: $canvasView,
-                drawing: $drawing,
-                tool: selectedTool,
-                color: selectedColor,
-                strokeWidth: strokeWidth,
-                onDrawingChanged: { newDrawing in
-                    viewModel.updatePageDrawing(newDrawing, at: pageIndex)
+        GeometryReader { geometry in
+            ZStack {
+                // 背景
+                templateBackground
+                    .clipped()
+                
+                // 画布
+                CanvasRepresentable(
+                    canvasView: $canvasView,
+                    drawing: $drawing,
+                    page: page,
+                    pageIndex: pageIndex,
+                    onDrawingChanged: { newDrawing in
+                        viewModel.updatePageDrawing(newDrawing, at: pageIndex)
+                    }
+                )
+                .scaleEffect(gestureManager.scale)
+                .rotationEffect(gestureManager.rotation)
+                .gesture(combinedGesture)
+                .gesture(doubleTapGesture)
+                
+                // 工具栏
+                VStack {
+                    Spacer()
+                    if showingToolBar {
+                        EnhancedToolBar(
+                            page: page,
+                            pageIndex: pageIndex
+                        )
+                    }
                 }
-            )
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .onAppear {
             setupCanvas()
@@ -59,101 +72,56 @@ struct NoteCanvasView: View {
         .onChange(of: pageIndex) { _ in
             loadPageDrawing()
         }
+        .onTapGesture {
+            showingToolBar.toggle()
+        }
     }
     
-    // MARK: - 工具栏
+    // MARK: - 手势
     
-    private var toolBar: some View {
-        HStack(spacing: 20) {
-            // 工具选择
-            HStack(spacing: 12) {
-                ForEach(ToolType.allCases, id: \.self) { tool in
-                    Button(action: { selectedTool = tool }) {
-                        Image(systemName: tool.icon)
-                            .font(.system(size: 20))
-                            .foregroundColor(selectedTool == tool ? .blue : .secondary)
-                            .frame(width: 44, height: 44)
-                            .background(
-                                selectedTool == tool ?
-                                Color.blue.opacity(0.1) : Color.clear
-                            )
-                            .cornerRadius(8)
-                    }
+    private var combinedGesture: some Gesture {
+        SimultaneousGesture(
+            MagnificationGesture()
+                .onChanged { value in
+                    let delta = value / lastScale
+                    lastScale = value
+                    gestureManager.handleScale(delta)
+                }
+                .onEnded { _ in
+                    lastScale = 1.0
+                },
+            RotationGesture()
+                .onChanged { angle in
+                    let delta = angle - lastRotation
+                    lastRotation = angle
+                    gestureManager.rotation += delta
+                }
+                .onEnded { _ in
+                    lastRotation = .zero
+                }
+        )
+    }
+    
+    private var doubleTapGesture: some Gesture {
+        TapGesture(count: 2)
+            .onEnded {
+                if gestureManager.handleDoubleTap() {
+                    lastScale = 1.0
+                    lastRotation = .zero
                 }
             }
-            
-            Divider()
-                .frame(height: 30)
-            
-            // 颜色选择
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(colors, id: \.self) { color in
-                        Circle()
-                            .fill(color)
-                            .frame(width: 28, height: 28)
-                            .overlay(
-                                Circle()
-                                    .stroke(selectedColor == color ? Color.primary : Color.clear, lineWidth: 2)
-                            )
-                            .onTapGesture {
-                                selectedColor = color
-                                updateTool()
-                            }
-                    }
-                }
-                .padding(.horizontal, 4)
-            }
-            
-            Divider()
-                .frame(height: 30)
-            
-            // 笔触粗细
-            HStack(spacing: 8) {
-                Image(systemName: "lineweight")
-                    .foregroundColor(.secondary)
-                
-                Slider(value: $strokeWidth, in: 1...20, step: 1)
-                    .frame(width: 80)
-                    .onChange(of: strokeWidth) { _ in
-                        updateTool()
-                    }
-            }
-            
-            Spacer()
-            
-            // 撤销/重做
-            HStack(spacing: 12) {
-                Button(action: undo) {
-                    Image(systemName: "arrow.uturn.backward")
-                        .font(.system(size: 18))
-                        .foregroundColor(viewModel.canUndo ? .primary : .secondary.opacity(0.5))
-                }
-                .disabled(!viewModel.canUndo)
-                
-                Button(action: redo) {
-                    Image(systemName: "arrow.uturn.forward")
-                        .font(.system(size: 18))
-                        .foregroundColor(viewModel.canRedo ? .primary : .secondary.opacity(0.5))
-                }
-                .disabled(!viewModel.canRedo)
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(Color(UIColor.systemBackground))
     }
     
     // MARK: - 画布方法
     
     private func setupCanvas() {
-        canvasView.backgroundColor = .white
-        canvasView.drawingPolicy = .anyInput // 支持 Apple Pencil 和手指
+        canvasView.backgroundColor = .clear
+        canvasView.isOpaque = false
+        canvasView.drawingPolicy = .anyInput
+        canvasView.minimumZoomScale = gestureManager.minScale
+        canvasView.maximumZoomScale = gestureManager.maxScale
         
-        // 加载已有绘制
         loadPageDrawing()
-        
-        // 应用当前工具
         updateTool()
     }
     
@@ -172,45 +140,24 @@ struct NoteCanvasView: View {
     }
     
     private func updateTool() {
-        switch selectedTool {
-        case .pen:
-            canvasView.tool = PKInkingTool(.pen, color: UIColor(selectedColor), width: strokeWidth)
-        case .highlighter:
-            canvasView.tool = PKInkingTool(.marker, color: UIColor(selectedColor).withAlphaComponent(0.3), width: strokeWidth * 3)
-        case .eraser:
-            canvasView.tool = PKEraserTool(.bitmap)
-        }
-    }
-    
-    private func undo() {
-        if let previousDrawing = viewModel.undo(drawing: drawing) {
-            drawing = previousDrawing
-            canvasView.drawing = drawing
-        }
-    }
-    
-    private func redo() {
-        if let nextDrawing = viewModel.redo(drawing: drawing) {
-            drawing = nextDrawing
-            canvasView.drawing = drawing
-        }
+        // 工具设置由 EnhancedToolBar 处理
     }
 }
 
-// MARK: - Canvas Representable
+// MARK: - Canvas Representable (更新版)
 
 /// UIViewRepresentable 包装 PKCanvasView
 struct CanvasRepresentable: UIViewRepresentable {
     @Binding var canvasView: PKCanvasView
     @Binding var drawing: PKDrawing
-    let tool: NoteCanvasView.ToolType
-    let color: Color
-    let strokeWidth: CGFloat
+    let page: NotePage
+    let pageIndex: Int
     let onDrawingChanged: (PKDrawing) -> Void
     
     func makeUIView(context: Context) -> PKCanvasView {
         canvasView.delegate = context.coordinator
-        canvasView.backgroundColor = .white
+        canvasView.backgroundColor = .clear
+        canvasView.isOpaque = false
         canvasView.drawingPolicy = .anyInput
         return canvasView
     }
