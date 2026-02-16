@@ -4,6 +4,7 @@
  * 功能：
  * - 笔记本 CRUD 操作
  * - 笔记页面管理
+ * - 用户认证 (Firebase)
  * - 数据持久化 (SQLite)
  * 
  * 端口：3000
@@ -23,6 +24,7 @@ if (!fs.existsSync(dataDir)) {
 // 导入路由
 const notebooksRouter = require('./routes/notebooks');
 const pagesRouter = require('./routes/pages');
+const usersRouter = require('./routes/users');
 const { initDatabase } = require('./models/database');
 
 const app = express();
@@ -39,6 +41,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // API 路由
 app.use('/api/notebooks', notebooksRouter);
 app.use('/api/pages', pagesRouter);
+app.use('/api/users', usersRouter);
 
 // 健康检查
 app.get('/health', (req, res) => {
@@ -53,7 +56,11 @@ app.get('/', (req, res) => {
     endpoints: {
       notebooks: '/api/notebooks',
       pages: '/api/pages',
+      users: '/api/users',
       health: '/health'
+    },
+    auth: {
+      methods: ['Apple', 'Google', 'WeChat', 'Email', 'Anonymous']
     }
   });
 });
