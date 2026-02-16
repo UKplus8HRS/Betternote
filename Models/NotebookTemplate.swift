@@ -226,6 +226,150 @@ final class TemplateManager: ObservableObject {
                 pages: [.blank, .blank, .blank],
                 tags: ["手账", "拼贴", "装饰"]
             ),
+            
+            // ===== 更多学习类 =====
+            NotebookTemplate(
+                name: "化学笔记",
+                description: "化学方程式和实验记录",
+                category: .study,
+                coverColor: "#32D74B",
+                pages: [.blank, .blank, .blank],
+                tags: ["化学", "实验", "方程式"]
+            ),
+            NotebookTemplate(
+                name: "物理笔记",
+                description: "物理公式和力学分析",
+                category: .study,
+                coverColor: "#0A84FF",
+                pages: [.grid, .blank, .blank],
+                tags: ["物理", "公式", "力学"]
+            ),
+            NotebookTemplate(
+                name: "历史年表",
+                description: "历史事件和时间线",
+                category: .study,
+                coverColor: "#8E8E93",
+                pages: [.blank, .blank, .blank],
+                tags: ["历史", "年表", "事件"]
+            ),
+            NotebookTemplate(
+                name: "地理地图",
+                description: "地图绘制和地理标注",
+                category: .study,
+                coverColor: "#30D158",
+                pages: [.blank, .blank, .blank],
+                tags: ["地理", "地图", "标注"]
+            ),
+            
+            // ===== 更多工作类 =====
+            NotebookTemplate(
+                name: "周计划",
+                description: "每周计划和目标追踪",
+                category: .work,
+                coverColor: "#FF9F0A",
+                pages: [.checklist, .checklist, .checklist, .checklist, .checklist],
+                tags: ["周计划", "目标", "追踪"]
+            ),
+            NotebookTemplate(
+                name: "月度总结",
+                description: "月度工作汇总和分析",
+                category: .work,
+                coverColor: "#5856D6",
+                pages: [.blank, .lined, .blank],
+                tags: ["月度", "总结", "分析"]
+            ),
+            NotebookTemplate(
+                name: "客户管理",
+                description: "客户信息和跟进记录",
+                category: .work,
+                coverColor: "#007AFF",
+                pages: [.blank, .blank, .blank],
+                tags: ["客户", "管理", "跟进"]
+            ),
+            NotebookTemplate(
+                name: "财务笔记",
+                description: "收支记录和预算规划",
+                category: .work,
+                coverColor: "#34C759",
+                pages: [.checklist, .lined, .blank],
+                tags: ["财务", "收支", "预算"]
+            ),
+            
+            // ===== 更多生活类 =====
+            NotebookTemplate(
+                name: "电影清单",
+                description: "想看和已看电影记录",
+                category: .life,
+                coverColor: "#FF375F",
+                pages: [.checklist, .blank],
+                tags: ["电影", "清单", "观影"]
+            ),
+            NotebookTemplate(
+                name: "音乐播放列表",
+                description: "喜欢的歌曲和专辑",
+                category: .life,
+                coverColor: "#BF5AF2",
+                pages: [.blank, .checklist],
+                tags: ["音乐", "歌曲", "专辑"]
+            ),
+            NotebookTemplate(
+                name: "购物清单",
+                description: "购物清单和比价记录",
+                category: .life,
+                coverColor: "#FF9500",
+                pages: [.checklist, .checklist],
+                tags: ["购物", "清单", "比价"]
+            ),
+            NotebookTemplate(
+                name: "礼物清单",
+                description: "礼物创意和购买记录",
+                category: .life,
+                coverColor: "#FF2D55",
+                pages: [.checklist, .blank],
+                tags: ["礼物", "创意", "节日"]
+            ),
+            NotebookTemplate(
+                name: "灵感收集",
+                description: "日常灵感和创意点子",
+                category: .life,
+                coverColor: "#64D2FF",
+                pages: [.blank, .blank, .blank],
+                tags: ["灵感", "创意", "点子"]
+            ),
+            
+            // ===== 更多创意类 =====
+            NotebookTemplate(
+                name: "漫画草稿",
+                description: "漫画分镜和草图",
+                category: .creative,
+                coverColor: "#FF6B6B",
+                pages: [.blank, .blank, .blank, .blank, .blank],
+                tags: ["漫画", "草稿", "分镜"]
+            ),
+            NotebookTemplate(
+                name: "设计草图",
+                description: "UI/UX 设计草图",
+                category: .creative,
+                coverColor: "#5E5CE6",
+                pages: [.blank, .blank, .blank],
+                tags: ["设计", "UI", "UX"]
+            ),
+            NotebookTemplate(
+                name: "建筑草图",
+                description: "建筑设计构思和草图",
+                category: .creative,
+                coverColor: "#AC8E68",
+                pages: [.blank, .blank, .blank],
+                tags: ["建筑", "设计", "草图"]
+            ),
+            NotebookTemplate(
+                name: "服装设计",
+                description: "服装设计和配色方案",
+                category: .creative,
+                coverColor: "#FFB3C6",
+                pages: [.blank, .blank, .blank],
+                tags: ["服装", "设计", "配色"]
+            ),
         ]
     }
     
