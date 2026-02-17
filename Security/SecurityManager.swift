@@ -1,5 +1,6 @@
 import Foundation
 import LocalAuthentication
+import CryptoKit
 
 /// 安全管理器
 /// 提供生物识别、密码保护、数据加密等功能
@@ -89,14 +90,12 @@ final class SecurityManager: ObservableObject {
     
     /// 验证密码
     func authenticateWithPasscode(_ passcode: String) -> Bool {
-        // 简化实现 - 实际应该使用 Keychain 存储哈希值
-        let storedPasscode = UserDefaults.standard.string(forKey: "appPasscode") ?? ""
-        
-        if storedPasscode.isEmpty {
+        guard let storedHash = KeychainHelper.load(key: "appPasscodeHash") else {
             return true // 没有设置密码
         }
         
-        let success = passcode == storedPasscode
+        let inputHash = hashPasscode(passcode)
+        let success = inputHash == storedHash
         if success {
             isLocked = false
         }
@@ -105,15 +104,22 @@ final class SecurityManager: ObservableObject {
     
     /// 设置应用密码
     func setPasscode(_ passcode: String) {
-        // 实际应该存储哈希值
-        UserDefaults.standard.set(passcode, forKey: "appPasscode")
+        let hash = hashPasscode(passcode)
+        KeychainHelper.save(key: "appPasscodeHash", value: hash)
         settings.usePasscode = true
     }
     
     /// 移除密码
     func removePasscode() {
-        UserDefaults.standard.removeObject(forKey: "appPasscode")
+        KeychainHelper.delete(key: "appPasscodeHash")
         settings.usePasscode = false
+    }
+    
+    /// 对密码进行 SHA256 哈希
+    private func hashPasscode(_ passcode: String) -> String {
+        let data = Data(passcode.utf8)
+        let hash = SHA256.hash(data: data)
+        return hash.compactMap { String(format: "%02x", $0) }.joined()
     }
     
     /// 锁定应用
@@ -127,6 +133,59 @@ final class SecurityManager: ObservableObject {
     }
 }
 
+// MARK: - Keychain 辅助工具
+
+/// Keychain 辅助工具
+/// 安全存储密码等敏感信息
+final class KeychainHelper {
+    
+    /// 保存字符串到 Keychain
+    static func save(key: String, value: String) {
+        let data = Data(value.utf8)
+        
+        // 先尝试删除旧值
+        delete(key: key)
+        
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: key,
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        ]
+        
+        SecItemAdd(query as CFDictionary, nil)
+    }
+    
+    /// 从 Keychain 读取字符串
+    static func load(key: String) -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: key,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        
+        guard status == errSecSuccess, let data = result as? Data else {
+            return nil
+        }
+        
+        return String(data: data, encoding: .utf8)
+    }
+    
+    /// 从 Keychain 删除
+    static func delete(key: String) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: key
+        ]
+        
+        SecItemDelete(query as CFDictionary)
+    }
+}
+
 // MARK: - 数据加密
 
 /// 数据加密工具
@@ -134,19 +193,19 @@ final class DataEncryption {
     
     /// 加密数据
     static func encrypt(_ data: Data, with key: Data) -> Data? {
-        // 简化实现 - 实际应该使用 CryptoKit
+        // TODO: 使用 CryptoKit 的 AES-GCM 实现完整加密
         return data
     }
     
     /// 解密数据
     static func decrypt(_ data: Data, with key: Data) -> Data? {
-        // 简化实现 - 实际应该使用 CryptoKit
+        // TODO: 使用 CryptoKit 的 AES-GCM 实现完整解密
         return data
     }
     
     /// 从密码生成密钥
     static func generateKey(from password: String) -> Data {
-        // 简化实现 - 实际应该使用 PBKDF2
+        // TODO: 使用 PBKDF2 或 Argon2 从密码派生密钥
         return Data(password.utf8)
     }
 }

@@ -15,11 +15,12 @@ struct Notebook: Identifiable, Codable {
     /// - Parameters:
     ///   - title: 笔记本标题，默认"新笔记本"
     ///   - coverColor: 封面颜色，默认蓝色
-    init(id: UUID = UUID(), title: String = "新笔记本", coverColor: String = "blue") {
+    ///   - pages: 页面列表，默认创建一个空白页
+    init(id: UUID = UUID(), title: String = "新笔记本", coverColor: String = "blue", pages: [NotePage]? = nil) {
         self.id = id
         self.title = title
         self.coverColor = coverColor
-        self.pages = [NotePage()]
+        self.pages = pages ?? [NotePage()]
         self.createdAt = Date()
         self.modifiedAt = Date()
     }

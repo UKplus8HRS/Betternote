@@ -45,10 +45,8 @@ struct ClawNotesApp: App {
     
     /// 配置应用设置
     private func configureApp() {
-        // SwiftUI 配置
-        SwiftUI.OnSubmit {
-            // 表单提交配置
-        }
+        // 应用初始化配置
+        // 未来可在此添加全局配置逻辑
     }
 }
 
@@ -82,29 +80,13 @@ enum AppConstants {
 }
 
 // MARK: - 颜色扩展
-
-extension Color {
-    /// 从十六进制创建颜色
-    static func fromHex(_ hex: String) -> Color? {
-        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
-        
-        var rgb: UInt64 = 0
-        guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else { return nil }
-        
-        let r = Double((rgb & 0xFF0000) >> 16) / 255.0
-        let g = Double((rgb & 0x00FF00) >> 8) / 255.0
-        let b = Double(rgb & 0x0000FF) / 255.0
-        
-        return Color(red: r, green: g, blue: b)
-    }
-}
+// 注意: Color(hex:) init 定义在 EnhancedToolBar.swift 中，全局可用
 
 // MARK: - 日期扩展
 
 extension Date {
-    /// 格式化日期
-    func formatted(style: DateFormatter.Style = .medium) -> String {
+    /// 格式化日期为本地化字符串
+    func formattedString(style: DateFormatter.Style = .medium) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = style
         formatter.timeStyle = .short
@@ -160,7 +142,7 @@ extension View {
     
     /// 应用主题颜色
     func themedBackground(_ colorName: String) -> some View {
-        self.background(Color.fromHex(colorName) ?? .clear)
+        self.background(Color(hex: colorName) ?? .clear)
     }
 }
 

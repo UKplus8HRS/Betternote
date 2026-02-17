@@ -18,6 +18,7 @@ struct FirebaseConfig {
     // ==================== 替换为你的配置 ====================
     
     /// API Key
+    #warning("请替换以下 Firebase 配置为您自己的真实凭据")
     static let apiKey = "YOUR_API_KEY"
     
     /// Bundle ID (在 Xcode 中查看)

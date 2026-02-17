@@ -17,8 +17,12 @@
  */
 
 import Foundation
+#if canImport(FirebaseAuth)
 import FirebaseAuth
+#endif
+#if canImport(GoogleSignIn)
 import GoogleSignIn
+#endif
 import AuthenticationServices
 import CryptoKit
 
@@ -307,7 +311,7 @@ final class AuthManager: NSObject, ObservableObject {
     
     private func sha256(_ string: String) -> String {
         let inputData = Data(string.utf8)
-        let hashed = Insecure.SHA256.hash(data: inputData)
+        let hashed = SHA256.hash(data: inputData)
         return hashed.compactMap { String(format: "%02x", $0) }.joined()
     }
 }
@@ -335,6 +339,11 @@ extension AuthManager: ASAuthorizationControllerDelegate {
 
 extension AuthManager: ASAuthorizationControllerPresentationContextProviding {
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        return UIApplication.shared.windows.first { $0.isKeyWindow }!
+        // iOS 15+ 安全获取 key window
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = scene.windows.first(where: { $0.isKeyWindow }) else {
+            return UIWindow()
+        }
+        return window
     }
 }

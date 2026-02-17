@@ -243,10 +243,18 @@ final class NotebookViewModel: ObservableObject {
         if let thumbnail = drawing.image(from: drawing.bounds, scale: 1.0).pngData() {
             notebook.pages[index].updateThumbnail(thumbnail)
         }
+        
+        // 更新笔记本修改时间
+        notebook.modifiedAt = Date()
 
         selectedNotebook = notebook
         notebooks = notebooks.map { $0.id == notebook.id ? notebook : $0 }
         saveNotebooks()
+        
+        // 异步同步到 iCloud
+        Task {
+            try? await cloudKitManager.saveNotebook(notebook)
+        }
     }
 
     // MARK: - 撤销/重做
@@ -265,7 +273,6 @@ final class NotebookViewModel: ObservableObject {
     func undo(drawing: PKDrawing) -> PKDrawing? {
         guard let previousDrawing = undoStack.popLast() else { return nil }
 
-        let currentData = drawing.dataRepresentation()
         redoStack.append(drawing)
 
         return previousDrawing
@@ -275,7 +282,6 @@ final class NotebookViewModel: ObservableObject {
     func redo(drawing: PKDrawing) -> PKDrawing? {
         guard let nextDrawing = redoStack.popLast() else { return nil }
 
-        let currentData = drawing.dataRepresentation()
         undoStack.append(drawing)
 
         return nextDrawing

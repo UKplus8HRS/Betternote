@@ -9,8 +9,10 @@ struct EnhancedToolBar: View {
     let page: NotePage
     let pageIndex: Int
     
-    @State private var canvasView = PKCanvasView()
-    @State private var drawing = PKDrawing()
+    /// 绑定到父视图的画布和绘图数据
+    @Binding var canvasView: PKCanvasView
+    @Binding var drawing: PKDrawing
+    
     @State private var selectedTool: DrawingTool = .pen
     @State private var selectedColor: Color = .black
     @State private var strokeWidth: CGFloat = 3
@@ -70,7 +72,7 @@ struct EnhancedToolBar: View {
         }
         .background(Color(UIColor.systemBackground))
         .onAppear {
-            setupCanvas()
+            updateTool()
         }
     }
     
@@ -319,25 +321,7 @@ struct EnhancedToolBar: View {
         .background(Color(UIColor.secondarySystemBackground))
     }
     
-    // MARK: - 画布方法
-    
-    private func setupCanvas() {
-        canvasView.backgroundColor = .white
-        canvasView.drawingPolicy = .anyInput
-        loadPageDrawing()
-        updateTool()
-    }
-    
-    private func loadPageDrawing() {
-        if let drawingData = page.drawingData {
-            do {
-                drawing = try PKDrawing(data: drawingData)
-                canvasView.drawing = drawing
-            } catch {
-                print("加载绘制数据失败: \(error)")
-            }
-        }
-    }
+    // MARK: - 画布方法 (画布由父视图 NoteCanvasView 管理)
     
     private func updateTool() {
         switch selectedTool {

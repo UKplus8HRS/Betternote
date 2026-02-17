@@ -54,4 +54,135 @@ struct NotePage: Identifiable, Codable {
         self.backgroundColor = color
         self.modifiedAt = Date()
     }
+    
+    // MARK: - Codable 实现 (自定义持久化)
+    
+    enum CodingKeys: String, CodingKey {
+        case id, template, backgroundColor, createdAt, modifiedAt
+        // drawingData 和 thumbnailData 不存入 UserDefault JSON，而是存入文件
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        template = try container.decode(String.self, forKey: .template)
+        backgroundColor = try container.decode(String.self, forKey: .backgroundColor)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        modifiedAt = try container.decode(Date.self, forKey: .modifiedAt)
+        
+        // 从文件加载大数据
+        drawingData = try? Data(contentsOf: NotePage.drawingURL(for: id))
+        thumbnailData = try? Data(contentsOf: NotePage.thumbnailURL(for: id))
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(template, forKey: .template)
+        try container.encode(backgroundColor, forKey: .backgroundColor)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(modifiedAt, forKey: .modifiedAt)
+        
+        // 将大数据写入文件 (副作用)
+        if let data = drawingData {
+            try? data.write(to: NotePage.drawingURL(for: id))
+        } else {
+            // 如果数据为空，尝试删除文件
+            try? FileManager.default.removeItem(at: NotePage.drawingURL(for: id))
+        }
+        
+        if let thumb = thumbnailData {
+            try? thumb.write(to: NotePage.thumbnailURL(for: id))
+        } else {
+            try? FileManager.default.removeItem(at: NotePage.thumbnailURL(for: id))
+        }
+    }
+    
+    // MARK: - 文件路径辅助
+    
+    private static func documentsDirectory() -> URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    }
+    
+    private static func drawingURL(for id: UUID) -> URL {
+        documentsDirectory().appendingPathComponent("\(id.uuidString)_drawing.dat")
+    }
+    
+    private static func thumbnailURL(for id: UUID) -> URL {
+        documentsDirectory().appendingPathComponent("\(id.uuidString)_thumb.dat")
+    }
+}
+
+// MARK: - CloudKit 支持
+
+import CloudKit
+
+extension NotePage {
+    /// 转换为 CloudKit 记录
+    /// - Parameter notebookID: 所属笔记本 ID
+    func toCKRecord(notebookID: CKRecord.ID) -> CKRecord {
+        let recordID = CKRecord.ID(recordName: id.uuidString)
+        let record = CKRecord(recordType: "NotePage", recordID: recordID)
+        
+        // 基本属性
+        record["template"] = template
+        record["backgroundColor"] = backgroundColor
+        record["createdAt"] = createdAt
+        record["modifiedAt"] = modifiedAt
+        
+        // 关联父笔记本
+        let parentParams = CKReference(recordID: notebookID, action: .deleteSelf)
+        record["notebook"] = parentParams
+        
+        // 处理绘制数据 (CKAsset)
+        if let drawingData = drawingData, let asset = createAsset(from: drawingData, suffix: "drawing") {
+            record["drawingAsset"] = asset
+        }
+        
+        // 处理缩略图 (CKAsset)
+        if let thumbnailData = thumbnailData, let asset = createAsset(from: thumbnailData, suffix: "thumb") {
+            record["thumbnailAsset"] = asset
+        }
+        
+        return record
+    }
+    
+    /// 从 CloudKit 记录恢复
+    init?(record: CKRecord) {
+        guard let idString = record.recordID.recordName.components(separatedBy: ".").last,
+              let uuid = UUID(uuidString: idString) else {
+            return nil
+        }
+        
+        self.id = uuid
+        self.template = record["template"] as? String ?? PageTemplate.blank.rawValue
+        self.backgroundColor = record["backgroundColor"] as? String ?? "#FFFFFF"
+        self.createdAt = record["createdAt"] as? Date ?? Date()
+        self.modifiedAt = record["modifiedAt"] as? Date ?? Date()
+        
+        // 恢复绘制数据
+        if let asset = record["drawingAsset"] as? CKAsset, let fileURL = asset.fileURL {
+            self.drawingData = try? Data(contentsOf: fileURL)
+        }
+        
+        // 恢复缩略图
+        if let asset = record["thumbnailAsset"] as? CKAsset, let fileURL = asset.fileURL {
+            self.thumbnailData = try? Data(contentsOf: fileURL)
+        }
+    }
+    
+    /// 创建临时文件 Asset
+    private func createAsset(from data: Data, suffix: String) -> CKAsset? {
+        let tempDir = FileManager.default.temporaryDirectory
+        let fileName = "\(id.uuidString)_\(suffix).dat"
+        let fileURL = tempDir.appendingPathComponent(fileName)
+        
+        do {
+            try data.write(to: fileURL)
+            return CKAsset(fileURL: fileURL)
+        } catch {
+            print("创建 Asset 失败: \(error)")
+            return nil
+        }
+    }
 }

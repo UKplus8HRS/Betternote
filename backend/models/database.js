@@ -29,8 +29,7 @@ function initDatabase() {
       `, (err) => {
         if (err) {
           console.error('创建 notebooks 表失败:', err);
-          reject(err);
-          return;
+          return reject(err);
         }
         console.log('✓ notebooks 表创建成功');
       });
@@ -50,26 +49,23 @@ function initDatabase() {
       `, (err) => {
         if (err) {
           console.error('创建 pages 表失败:', err);
-          reject(err);
-          return;
+          return reject(err);
         }
         console.log('✓ pages 表创建成功');
       });
 
-      // 创建索引
+      // 创建索引 — 最后一步成功后 resolve
       db.run(`
         CREATE INDEX IF NOT EXISTS idx_pages_notebookId ON pages(notebookId)
       `, (err) => {
         if (err) {
           console.error('创建索引失败:', err);
-          reject(err);
-          return;
+          return reject(err);
         }
         console.log('✓ 索引创建成功');
+        console.log('✓ 数据库初始化完成');
+        resolve();
       });
-
-      console.log('✓ 数据库初始化完成');
-      resolve();
     });
   });
 }

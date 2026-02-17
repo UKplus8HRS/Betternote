@@ -59,7 +59,9 @@ struct NoteCanvasView: View {
                     if showingToolBar {
                         EnhancedToolBar(
                             page: page,
-                            pageIndex: pageIndex
+                            pageIndex: pageIndex,
+                            canvasView: $canvasView,
+                            drawing: $drawing
                         )
                     }
                 }
@@ -163,9 +165,9 @@ struct CanvasRepresentable: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: PKCanvasView, context: Context) {
-        // 同步 drawing 变化
+        // 从 SwiftUI binding 同步到 UIKit 画布
         if uiView.drawing != drawing {
-            drawing = uiView.drawing
+            uiView.drawing = drawing
         }
     }
     

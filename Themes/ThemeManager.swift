@@ -341,9 +341,9 @@ struct ColorPickerRow: View {
         HStack {
             Text(title)
             Spacer()
-            Color(hex: color) ?? .blue
+            RoundedRectangle(cornerRadius: 15)
+                .fill(Color(hex: color) ?? .blue)
                 .frame(width: 30, height: 30)
-                .cornerRadius(15)
         }
     }
 }
